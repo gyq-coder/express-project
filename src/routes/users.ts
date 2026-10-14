@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from "express";
 import validate from "express-zod-safe";
 import { z } from "zod";
 import redisClient from "../redis";
+import { hashPassword, verifyPassword } from "../bcrypt";
 
 const router = express.Router();
 
@@ -56,7 +57,10 @@ router.get(
       id: z.string(),
     },
   }),
-  function (req: Request, res: Response, next: NextFunction) {
+  async function (req: Request, res: Response, next: NextFunction) {
+    const passwordHash = await hashPassword("123456");
+    console.log("加密", passwordHash);
+    console.log("验证", await verifyPassword("1234561", passwordHash));
     redisClient
       .set(`user:${req.params.id}`, JSON.stringify({ id: req.params.id, name: "John Doe" }))
       .then(() => {
