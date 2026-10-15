@@ -11,8 +11,8 @@ import cors from "cors";
 import { rateLimit } from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
-import indexRouter from "./routes/index";
-import usersRouter from "./routes/users";
+import homeController from "./modules/home/controller";
+import userController from "./modules/user/controller";
 
 const app = express();
 
@@ -47,7 +47,7 @@ app.use(
           description: "API 描述",
         },
       },
-      apis: ["src/routes/*.ts"], // 扫描路由文件中的注释
+      apis: ["src/**/**/controller.ts"], // 扫描路由文件中的注释
     }),
   ),
 );
@@ -106,8 +106,8 @@ app.use(
 );
 
 // 设置路由
-app.use("/", indexRouter);
-app.use("/users", usersRouter);
+app.use("/", homeController);
+app.use("/users", userController);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
@@ -119,13 +119,8 @@ interface ErrorWithStatus extends Error {
   status?: number;
 }
 app.use(function (err: ErrorWithStatus, req: Request, res: Response, next: NextFunction) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get("env") === "development" ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.send("error");
+  // send the error
+  res.status(err.status || 500).send(err.message || "Internal Server Error");
 });
 
 export default app;
