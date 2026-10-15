@@ -2,8 +2,8 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import validate from "express-zod-safe";
 import { z } from "zod";
-import redisClient from "../../lib/redis";
-import { hashPassword, verifyPassword } from "../../lib/bcrypt";
+import redisClient from "../../libs/redis";
+import { hashPassword, verifyPassword } from "../../libs/bcrypt";
 
 const router = express.Router();
 
