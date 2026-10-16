@@ -3,84 +3,62 @@ import type { Request, Response, NextFunction } from "express";
 import validate from "express-zod-safe";
 import { z } from "zod";
 import redisClient from "../../libs/redis";
-import { hashPassword, verifyPassword } from "../../libs/bcrypt";
+import { hashPassword } from "../../libs/bcrypt";
 
 const router = express.Router();
 
 /**
  * @swagger
- * /users:
- *   get:
- *     summary: 用户列表
- *     operationId: getUsers
+ * /user/add:
+ *   post:
+ *     summary: 添加用户
+ *     operationId: addUser
  *     tags:
- *       - Users
+ *       - User
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
  *     responses:
- *       200:
- *         description: 返回资源
+ *       201:
+ *         description: 用户创建成功
+ *       409:
+ *         description: 用户已存在
  */
-router.get(
-  "/",
+router.post(
+  "/add",
   validate({
-    query: {
-      page: z.number().int().min(1).default(1).optional(),
-      limit: z.number().int().min(1).max(100).default(10).optional(),
-    },
-  }),
-  function (req: Request, res: Response, next: NextFunction) {
-    res.send("respond with a resource");
-  },
-);
-
-/**
- * @swagger
- * /users/{id}:
- *   get:
- *     summary: 获取用户详情
- *     operationId: getUsersById  
- *     tags:
- *       - Users  
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: 返回资源详情
- */
-router.get(
-  "/:id",
-  validate({
-    params: {
-      id: z.string(),
+    body: {
+      username: z.string().min(2).max(100),
+      password: z.string().min(6).max(100),
     },
   }),
   async function (req: Request, res: Response, next: NextFunction) {
-    const passwordHash = await hashPassword("123456");
-    console.log("加密", passwordHash);
-    console.log("验证", await verifyPassword("1234561", passwordHash));
-    redisClient
-      .set(`user:${req.params.id}`, JSON.stringify({ id: req.params.id, name: "John Doe" }))
-      .then(() => {
-        console.log(`Cached user ${req.params.id}`);
-      })
-      .catch((err) => {
-        console.error("Redis Error:", err);
-        res.status(500).send("Internal Server Error");
-      });
-    redisClient
-      .get(`user:${req.params.id}`)
-      .then((cachedUser) => {
-        console.log("cachedUser", cachedUser);
-      })
-      .catch((err) => {
-        console.error("Redis Error:", err);
-        res.status(500).send("Internal Server Error");
-      });
+    const { username, password } = req.body;
 
-    res.send(`respond with user ${req.params.id}`);
+    // 检查用户是否已存在
+    const existingUser = await redisClient.get(`user:${username}`);
+    if (existingUser) {
+      return res.status(500).json({ message: "用户已存在" });
+    }
+
+    // 创建新用户
+    const hashedPassword = await hashPassword(password);
+    const newUser = { id: Date.now().toString(), username, password: hashedPassword };
+
+    // 缓存新用户
+    await redisClient.set(`user:${username}`, JSON.stringify(newUser));
+
+    res.status(200).json({ user: newUser });
   },
 );
 

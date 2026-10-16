@@ -16,64 +16,56 @@ import f from "express-zod-safe";
 import { z as p } from "zod";
 import { createClient as m } from "redis";
 import h from "bcryptjs";
-import g from "http";
-const _ = t.Router();
-_.get(`/`, function (e, t, n) {
-  (console.log(e.cookies), t.send(`root`));
+import g from "jsonwebtoken";
+import _ from "http";
+const v = t.Router();
+v.get(`/`, async function (e, t, n) {
+  (console.log(`获取请求头信息:`, e.get(`User-Agent`)),
+    console.log(`获取Authorization头信息:`, e.get(`Authorization`)),
+    t.json({ message: `欢迎来到首页` }));
 });
-const v = m({ socket: { host: `localhost`, port: 6379 }, username: `default`, password: `admin` });
-(v.on(`error`, (e) => console.error(`Redis Error:`, e)), v.connect().catch(console.error));
-async function y(e) {
+const y = m({ socket: { host: `localhost`, port: 6379 }, username: `default`, password: `admin` });
+(y.on(`error`, (e) => console.error(`Redis Error:`, e)), y.connect().catch(console.error));
+async function b(e) {
   return h.hash(e, 10);
 }
-async function b(e, t) {
+async function x(e, t) {
   return h.compare(e, t);
 }
-const x = t.Router();
-(x.get(
-  `/`,
-  f({
-    query: {
-      page: p.number().int().min(1).default(1).optional(),
-      limit: p.number().int().min(1).max(100).default(10).optional(),
-    },
-  }),
-  function (e, t, n) {
-    t.send(`respond with a resource`);
+const S = t.Router();
+S.post(`/`, f({ body: { username: p.string(), password: p.string() } }), async function (e, t, n) {
+  let { username: r, password: i } = e.body,
+    a = await y.get(`user:${r}`);
+  if (!a) return t.status(500).json({ message: `用户名或密码错误` });
+  let o = JSON.parse(a);
+  if (!(await x(i, o.password))) return t.status(500).json({ message: `用户名或密码错误` });
+  let s = g.sign({ id: o.id, username: o.username }, process.env.JWT_SECRET || `your_secret_key`, {
+    expiresIn: `1h`,
+  });
+  t.json({ user: { id: o.id, username: o.username }, token: s });
+});
+const C = t.Router();
+C.post(
+  `/add`,
+  f({ body: { username: p.string().min(2).max(100), password: p.string().min(6).max(100) } }),
+  async function (e, t, n) {
+    let { username: r, password: i } = e.body;
+    if (await y.get(`user:${r}`)) return t.status(500).json({ message: `用户已存在` });
+    let a = await b(i),
+      o = { id: Date.now().toString(), username: r, password: a };
+    (await y.set(`user:${r}`, JSON.stringify(o)), t.status(200).json({ user: o }));
   },
-),
-  x.get(`/:id`, f({ params: { id: p.string() } }), async function (e, t, n) {
-    let r = await y(`123456`);
-    (console.log(`加密`, r),
-      console.log(`验证`, await b(`1234561`, r)),
-      v
-        .set(`user:${e.params.id}`, JSON.stringify({ id: e.params.id, name: `John Doe` }))
-        .then(() => {
-          console.log(`Cached user ${e.params.id}`);
-        })
-        .catch((e) => {
-          (console.error(`Redis Error:`, e), t.status(500).send(`Internal Server Error`));
-        }),
-      v
-        .get(`user:${e.params.id}`)
-        .then((e) => {
-          console.log(`cachedUser`, e);
-        })
-        .catch((e) => {
-          (console.error(`Redis Error:`, e), t.status(500).send(`Internal Server Error`));
-        }),
-      t.send(`respond with user ${e.params.id}`));
-  }));
-const S = t();
-(S.use(s()),
-  S.use(c()),
-  S.use(o()),
-  S.use(t.json()),
-  S.use(t.urlencoded({ extended: !1 })),
-  S.use(r()),
-  S.use(t.static(n.join(import.meta.dirname, `public`))),
-  S.use(l({ windowMs: 9e5, limit: 100, standardHeaders: !0, legacyHeaders: !1, ipv6Subnet: 56 })),
-  S.use(
+);
+const w = t();
+(w.use(s()),
+  w.use(c()),
+  w.use(o()),
+  w.use(t.json()),
+  w.use(t.urlencoded({ extended: !1 })),
+  w.use(r()),
+  w.use(t.static(n.join(import.meta.dirname, `public`))),
+  w.use(l({ windowMs: 9e5, limit: 100, standardHeaders: !0, legacyHeaders: !1, ipv6Subnet: 56 })),
+  w.use(
     `/docs`,
     u.serve,
     u.setup(
@@ -86,7 +78,7 @@ const S = t();
       }),
     ),
   ),
-  S.use(
+  w.use(
     i({
       logger: a({
         level: process.env.LOG_LEVEL || `info`,
@@ -121,25 +113,26 @@ const S = t();
       },
     }),
   ),
-  S.use(`/`, _),
-  S.use(`/users`, x),
-  S.use(function (t, n, r) {
+  w.use(`/`, v),
+  w.use(`/login`, S),
+  w.use(`/user`, C),
+  w.use(function (t, n, r) {
     r(e(404));
   }),
-  S.use(function (e, t, n, r) {
+  w.use(function (e, t, n, r) {
     n.status(e.status || 500).send(e.message || `Internal Server Error`);
   }));
-const C = T(process.env.PORT || `3000`);
-S.set(`port`, C);
-const w = g.createServer(S);
-(w.listen(C), w.on(`error`, E), w.on(`listening`, D));
-function T(e) {
+const T = D(process.env.PORT || `3000`);
+w.set(`port`, T);
+const E = _.createServer(w);
+(E.listen(T), E.on(`error`, O), E.on(`listening`, k));
+function D(e) {
   let t = parseInt(e, 10);
   return isNaN(t) ? e : t >= 0 && t;
 }
-function E(e) {
+function O(e) {
   if (e.syscall !== `listen`) throw e;
-  let t = typeof C == `string` ? `Pipe ` + C : `Port ` + C;
+  let t = typeof T == `string` ? `Pipe ` + T : `Port ` + T;
   switch (e.code) {
     case `EACCES`:
       (console.error(t + ` requires elevated privileges`), process.exit(1));
@@ -151,10 +144,9 @@ function E(e) {
       throw e;
   }
 }
-function D() {
-  let e = w.address(),
+function k() {
+  let e = E.address(),
     t = typeof e == `string` ? `pipe ` + e : `port ` + e?.port;
   console.log(`Listening on ` + t);
 }
 export {};
-//# sourceMappingURL=server.js.map

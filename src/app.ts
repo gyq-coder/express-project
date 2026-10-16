@@ -12,6 +12,7 @@ import { rateLimit } from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
 import homeController from "./modules/home/controller";
+import loginController from "./modules/login/controller";
 import userController from "./modules/user/controller";
 
 const app = express();
@@ -107,7 +108,8 @@ app.use(
 
 // 设置路由
 app.use("/", homeController);
-app.use("/users", userController);
+app.use("/login", loginController);
+app.use("/user", userController);
 
 // catch 404 and forward to error handler
 app.use(function (req: Request, res: Response, next: NextFunction) {
