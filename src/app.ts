@@ -87,12 +87,7 @@ app.use(
     // 只记录需要的 header
     serializers: {
       req(req) {
-        return {
-          method: req.method,
-          url: req.url,
-          // 注意：req.raw 才是原始 Node req
-          id: req.id,
-        };
+        return { method: req.method, url: req.url, id: req.id };
       },
       res(res) {
         return { statusCode: res.statusCode };

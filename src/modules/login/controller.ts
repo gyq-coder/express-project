@@ -5,8 +5,11 @@ import { z } from "zod";
 import redisClient from "../../libs/redis";
 import { verifyPassword } from "../../libs/bcrypt";
 import jsonwebtoken from "jsonwebtoken";
+import { authenticateToken } from "../../middlewares/auth";
 
 const router = express.Router();
+
+router.use(authenticateToken);
 
 /**
  * @swagger

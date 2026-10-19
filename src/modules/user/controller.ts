@@ -4,8 +4,10 @@ import validate from "express-zod-safe";
 import { z } from "zod";
 import redisClient from "../../libs/redis";
 import { hashPassword } from "../../libs/bcrypt";
-
+import { authenticateToken } from "../../middlewares/auth";
 const router = express.Router();
+
+router.use(authenticateToken);
 
 /**
  * @swagger

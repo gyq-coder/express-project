@@ -1,9 +1,10 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import validate from "express-zod-safe";
-import { z } from "zod";
+import { authenticateToken } from "../../middlewares/auth";
 
 const router = express.Router();
+
+router.use(authenticateToken);
 
 // 获取首页数据
 router.get("/", async function (req: Request, res: Response, next: NextFunction) {
