@@ -1,6 +1,6 @@
 import express from "express";
 import type { Request, Response, NextFunction } from "express";
-import { authenticateToken } from "../../middlewares/auth";
+import { authenticateToken } from "../../middlewares/authorize";
 
 const router = express.Router();
 

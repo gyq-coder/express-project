@@ -5,7 +5,7 @@ import { z } from "zod";
 import redisClient from "../../libs/redis";
 import { verifyPassword } from "../../libs/bcrypt";
 import jsonwebtoken from "jsonwebtoken";
-import { authenticateToken } from "../../middlewares/auth";
+import { authenticateToken } from "../../middlewares/authorize";
 
 const router = express.Router();
 
@@ -62,7 +62,7 @@ router.post(
     // 登录成功，返回用户信息和 token
     const token = jsonwebtoken.sign(
       { id: user.id, username: user.username },
-      process.env.JWT_SECRET || "your_secret_key",
+      process.env.JWT_SECRET as string,
       { expiresIn: "1h" },
     );
 

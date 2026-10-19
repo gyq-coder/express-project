@@ -7,7 +7,7 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
     return res.status(401).json({ error: "Missing token" });
   }
   try {
-    res.locals.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET || "your_secret_key");
+    res.locals.user = jwt.verify(auth.slice(7), process.env.JWT_SECRET as string);
     next();
   } catch (err) {
     return res.status(401).json({ error: "Invalid token" });
